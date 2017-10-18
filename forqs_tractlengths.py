@@ -141,9 +141,14 @@ def make_tractbins(tractdict,chrlen,maxlen,npts):
                 
 def plot_figure(ratevec,tstart,Ls,pop,maxlen,npts):
     """Plots the predicted tract length distributions against the
-    simulated tract length distributions from forqs."""
+    simulated tract length distributions from forqs."""    
     bindir = '/home/joelsmith/Projects/dmis/code/forqs_files/forqs_temp/'     
     bintable = pkl.load( open( bindir+"bintable.pkl", "rb" ) )
+#    binmatrix = pd.read_csv(bindir+'binmatrix.csv',names=ratevec)
+#    binmatrix = binmatrix.iloc[1:,]
+#    binmatrix.index = bintable.index
+#    binmatrix = binmatrix.astype('f')
+#    bintable = binmatrix
     bins = np.append(bintable.index.values,1)
     rows = bintable.shape[0]
     xAxis = np.array(list(range(1,rows+1)))[:rows-1] / np.array(rows)

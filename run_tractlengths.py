@@ -12,7 +12,7 @@ pop = 1
 Ls = [1]
 #-------------------------------
 
-exec(open("/home/joelsmith/Projects/dmis/code/tract_lengths.py").read())
+exec(open("/home/joelsmith/Projects/dmis/code/tractlengths/forqs_tractlengths.py").read())
 
 run_forqs(ratevec, tstart, popsize, chrlen)
 get_tracts(ratevec, chrlen, maxlen, npts)
