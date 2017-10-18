@@ -28,20 +28,21 @@ def run_forqs(ratevec, tstart, popsize, chrlen):
         input_list[10] = "chromosome_lengths = " + str(chrlen)
         input_list[11] = "population_size = id_population_size_trajectory"   
         input_list[12] = "migration_rate:from:to = id_migration_rate_trajectory 1 2"  
-        input_list[14] = "RecombinationPositionGenerator_SingleCrossover rpg"
-        input_list[16] = "Reporter_Population reporter_population"
-        input_list[18] = "Reporter_Timer reporter_timer"
-        input_list[20] = "SimulatorConfig"  
-        input_list[21] = "output_directory = "+codedir+"forqs_files/forqs_out/mig_"+str(rate)+"/" 
-        input_list[22] = "population_config_generator = popconfig_generator"              
-        input_list[23] = "recombination_position_generator = rpg"    
-        input_list[24] = "reporter = reporter_timer"    
-        input_list[25] = "reporter = reporter_population"     
+        input_list[14] = "RecombinationPositionGenerator_Uniform rpg"
+        input_list[15] = "rate = 1"
+        input_list[17] = "Reporter_Population reporter_population"
+        input_list[19] = "Reporter_Timer reporter_timer"
+        input_list[21] = "SimulatorConfig"  
+        input_list[22] = "output_directory = "+codedir+"forqs_files/forqs_out/mig_"+str(rate)+"/" 
+        input_list[23] = "population_config_generator = popconfig_generator"              
+        input_list[24] = "recombination_position_generator = rpg"    
+        input_list[25] = "reporter = reporter_timer"    
+        input_list[26] = "reporter = reporter_population"     
         thefile = open(codedir+"forqs_files/forqs_in/forqs_in_mig_"+str(rate)+".txt", 'w+')
         for item in input_list:
             thefile.write("%s\n" % item)
         thefile.close()
-        sp.run("rm "+codedir+"forqs.seed",shell=True) 
+        sp.run("rm forqs.seed",shell=True) 
         sp.run("forqs "+codedir+"forqs_files/forqs_in/forqs_in_mig_"+str(rate)+".txt",shell=True)
      
 def get_tracts(ratevec, chrlen, maxlen, npts):
@@ -84,7 +85,7 @@ def make_chroms(chunks):
         chunkindex = len(indpos[row,np.logical_not(np.isnan(indpos[row,]))]) 
         if chunkindex==0:   
             chrommatrix[row,:] = ids[row,0]
-            continue                    
+            #continue                    
         chunkstart = 0                  
         for chunk in range(chunkindex): 
             chunkend = list(np.where(pos==indpos[row,chunk])[0])[0]
@@ -93,7 +94,7 @@ def make_chroms(chunks):
         truevalues = ids[row,np.logical_not(np.isnan(ids[row,]))]    
         chrommatrix[row,np.where(chrommatrix[row,]==0)] = truevalues[-1]          
     chroms = np.copy(chrommatrix)
-    n = chrommatrix.shape[0]/2
+    n = chrommatrix.shape[0]
     chroms[np.where(chroms<(n-1))] = 1  
     chroms[np.where(chroms>(n-1))] = 2 
     chromdict = {"chroms":chroms,"pos":pos}
@@ -143,12 +144,7 @@ def plot_figure(ratevec,tstart,Ls,pop,maxlen,npts):
     """Plots the predicted tract length distributions against the
     simulated tract length distributions from forqs."""    
     bindir = '/home/joelsmith/Projects/dmis/code/forqs_files/forqs_temp/'     
-    bintable = pkl.load( open( bindir+"bintable.pkl", "rb" ) )
-#    binmatrix = pd.read_csv(bindir+'binmatrix.csv',names=ratevec)
-#    binmatrix = binmatrix.iloc[1:,]
-#    binmatrix.index = bintable.index
-#    binmatrix = binmatrix.astype('f')
-#    bintable = binmatrix
+    bintable = pkl.load(open(bindir+"bintable.pkl", "rb"))
     bins = np.append(bintable.index.values,1)
     rows = bintable.shape[0]
     xAxis = np.array(list(range(1,rows+1)))[:rows-1] / np.array(rows)
@@ -159,9 +155,9 @@ def plot_figure(ratevec,tstart,Ls,pop,maxlen,npts):
         tractDist = np.array(tractsOut)
         relTractDist = tractDist / np.sum(tractDist) 
         plt.plot(bins[:npts],np.log(relTractDist[:npts:]),label='_nolegend_')
-        obs = np.where(np.logical_not(bintable[rate]==0))
+        obs = np.asarray(np.where(np.logical_not(bintable[rate]==0)))[0][:-1]
         obsvalues = bintable.iloc[obs][rate]
-        plt.scatter(x=obsvalues.index,y=np.log(obsvalues),label=rate)          
+        plt.scatter(x=bintable.index[obs],y=np.log(obsvalues),label=rate)          
         plt.xlabel('Tract Length (Morgans)')
         plt.ylabel('log(Relative Frequency)')
         plt.legend(loc='upper right',title='Migration Rate')

@@ -2,7 +2,7 @@
 %reset
 %matplotlib
 #----------parameters----------
-popsize = 5000   
+popsize = 2000
 chrlen = 1000000
 ratevec = [.001,0.03,0.05]
 tstart = 30 
