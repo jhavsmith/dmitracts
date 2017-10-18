@@ -57,6 +57,7 @@ run.forqs.simulation = function(params) {
 }
 
 get.forqs.tract.length.distr = function(chroms.matrix) {
+    recover()
     pos = chroms.matrix[1,]
     haps.matrix = chroms.matrix[-1,]    
     tract.table = c(0,0)
