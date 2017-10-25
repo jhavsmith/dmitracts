@@ -17,17 +17,33 @@ make.population.hs = function(starting.freqs) {
     return(pop.list)
 }
 
-make.fitnessmatrix = function(alpha,alpha1,beta,beta1,s) {
+make.fitnessmatrix = function(seldmi,selanc,seldom) {
+    if (domdmi==0) {
+        h0=1
+        h1=1
+    }
+    if (domdmi==1) {
+        h0=1/4
+        h1=1/2
+    }
+    if (domdmi==2) {
+        h0=0
+        h1=1/2
+    }
+    if (domdmi==3) {
+        h0=0
+        h1=0
+    }
     zygote.w = matrix(nrow=3,ncol=3)
-    zygote.w[1,1] = 1          #AABB
-    zygote.w[1,2] = 1 - beta   #AABb
-    zygote.w[1,3] = 1 - beta1  #AAbb
-    zygote.w[2,1] = 1 - alpha  #AaBB
-    zygote.w[2,2] = 1 - s      #AaBb
-    zygote.w[2,3] = 1 - beta   #Aabb
-    zygote.w[3,1] = 1 - alpha1 #aaBB
-    zygote.w[3,2] = 1 - alpha  #aaBb
-    zygote.w[3,3] = 1          #aabb
+    zygote.w[1,1] = 1               #AABB
+    zygote.w[1,2] = 1 - seldmi*h1   #AABb
+    zygote.w[1,3] = 1 - seldmi      #AAbb
+    zygote.w[2,1] = 1 - (selanc/2)  #AaBB
+    zygote.w[2,2] = 1 - seldmi*h0   #AaBb
+    zygote.w[2,3] = 1 - seldmi*h1   #Aabb
+    zygote.w[3,1] = 1 - selanc      #aaBB
+    zygote.w[3,2] = 1 - (selanc/2)  #aaBb
+    zygote.w[3,3] = 1               #aabb
     return(zygote.w)
 }
 
@@ -106,9 +122,9 @@ make.zygotes.WF.hs = function(pop.list,N) {
     return(pop.list)
 }
 
-simulate.trajecs.hs = function(N,m,r,t,alpha,alpha1,beta,beta1,s,source.freqs,starting.freqs) {
+simulate.trajecs.hs = function(N,m,r,t,seldmi,selanc,seldom,source.freqs,starting.freqs) {
     pop.list = make.population.hs(starting.freqs)
-    zygote.w = make.fitnessmatrix(alpha,alpha1,beta,beta1,s)
+    zygote.w = make.fitnessmatrix(seldmi,selanc,seldom)
     gamete.trajecs = matrix(nrow=(t+1),ncol=4)     # gamete freqs are ordered AB Ab aB ab
     gamete.trajecs[1,] = pop.list$gamete.x
     allele.trajecs = matrix(nrow=(t+1),ncol=2)     # allele freqs are for A and b
@@ -130,11 +146,10 @@ simulate.trajecs.hs = function(N,m,r,t,alpha,alpha1,beta,beta1,s,source.freqs,st
 make.zygotes.hs = function(pop.list,N) {
     zygote.x = pop.list$zygote.x
     gamete.x = pop.list$gamete.x
-    gamete.vec = rmultinom(1,(2*N),prob=gamete.x)/(2*N)
-    AB.x = gamete.vec[1]
-    Ab.x = gamete.vec[2]
-    aB.x = gamete.vec[3]
-    ab.x = gamete.vec[4]
+    AB.x = gamete.x[1]
+    Ab.x = gamete.x[2]
+    aB.x = gamete.x[3]
+    ab.x = gamete.x[4]
     zygote.x[1,1] = AB.x*AB.x                 #AABB
     zygote.x[1,2] = 2*AB.x*Ab.x               #AABb
     zygote.x[1,3] = Ab.x*Ab.x                 #AAbb
@@ -145,13 +160,13 @@ make.zygotes.hs = function(pop.list,N) {
     zygote.x[3,2] = 2*aB.x*ab.x               #aaBb
     zygote.x[3,3] = ab.x*ab.x                 #aabb
     pop.list$zygote.x = zygote.x
-    pop.list$gamete.x = gamete.vec
+    pop.list$gamete.x = gamete.x
     return(pop.list)
 }
 
-simulate.trajecs.WF.hs = function(N,m,r,t,alpha,alpha1,beta,beta1,s,source.freqs,starting.freqs,reps) {
+simulate.trajecs.WF.hs = function(N,m,r,t,seldmi,selanc,seldom,source.freqs,starting.freqs,reps) {
     pop.list = make.population.hs(starting.freqs)
-    zygote.w = make.fitnessmatrix(alpha,alpha1,beta,beta1,s)
+    zygote.w = make.fitnessmatrix(seldmi,selanc,seldom)
     gamete.trajecs = matrix(nrow=(t+1),ncol=4)     # gamete freqs are ordered AB Ab aB ab
     gamete.trajecs[1,] = pop.list$gamete.x
     allele.trajecs = matrix(nrow=(t+1),ncol=2)     # allele freqs are for A and b
@@ -170,8 +185,7 @@ simulate.trajecs.WF.hs = function(N,m,r,t,alpha,alpha1,beta,beta1,s,source.freqs
     return(trajec.list)
 }
 
-
-WF.trajec.reps.hs = function(N,m,r,t,alpha,alpha1,beta,beta1,s,source.freqs,starting.freqs,reps) {
+WF.trajec.reps.hs = function(N,m,r,t,seldmi,selanc,seldom,source.freqs,starting.freqs,reps) {
     AB.matrix = matrix(nrow=t+1,ncol=reps)
     Ab.matrix = matrix(nrow=t+1,ncol=reps)
     aB.matrix = matrix(nrow=t+1,ncol=reps)
@@ -180,7 +194,7 @@ WF.trajec.reps.hs = function(N,m,r,t,alpha,alpha1,beta,beta1,s,source.freqs,star
     b.matrix  = matrix(nrow=t+1,ncol=reps)
     pb = txtProgressBar(1,reps,1,style=3)
     for (b in 1:reps) {
-        trajec.list.WF = simulate.trajecs.WF.hs(N,m,r,t,alpha,alpha1,beta,beta1,s,source.freqs,starting.freqs,reps)
+        trajec.list.WF = simulate.trajecs.WF.hs(N,m,r,t,seldmi,selanc,seldom,source.freqs,starting.freqs,reps)
         AB.matrix[,b] = trajec.list.WF[[1]]
         Ab.matrix[,b] = trajec.list.WF[[2]]
         aB.matrix[,b] = trajec.list.WF[[3]]
@@ -198,9 +212,9 @@ WF.trajec.reps.hs = function(N,m,r,t,alpha,alpha1,beta,beta1,s,source.freqs,star
     return(WF.rep.list)
 }
 
-find.equilibrium.freqs.hs = function(pops,N,m,msub,r,alpha,alpha1,beta,beta1,s,source.freqs) {
+find.equilibrium.freqs.hs = function(pops,N,m,msub,r,seldmi,selanc,seldom,source.freqs) {
     pop.list = make.population.hs(starting.freqs)
-    zygote.w = make.fitnessmatrix(alpha,alpha1,beta,beta1,s)
+    zygote.w = make.fitnessmatrix(seldmi,selanc,seldom)
     gamete.trajecs = matrix(nrow=(t+1),ncol=4)     # gamete freqs are ordered AB Ab aB ab
     gamete.trajecs[1,] = pop.list$gamete.x
     allele.trajecs = matrix(nrow=(t+1),ncol=2)     # allele freqs are for A and b
@@ -224,7 +238,6 @@ find.equilibrium.freqs.hs = function(pops,N,m,msub,r,alpha,alpha1,beta,beta1,s,s
 }
 
 plot.WF.versus.deterministic.hs = function(WF.det.list,WF.sto.list) {
-#    pdf("dmiWF_trajecs_hs_f.pdf",width=10,height=7)
     library('RColorBrewer')
     colors = brewer.pal(4,'Paired')
     par(mar=c(5,5,4,2))
@@ -243,6 +256,5 @@ plot.WF.versus.deterministic.hs = function(WF.det.list,WF.sto.list) {
     lines(WF.det.list[[2]],col=colors[2],lwd=3,lty=1)
     lines(WF.det.list[[3]],col=colors[3],lwd=3,lty=2)
     lines(WF.det.list[[4]],col=colors[4],lwd=3,lty=2)
-    legend(800,.6,legend=c("AB","Ab","aB","ab"),col=c(colors),lwd=5,cex=1.8)
-#    dev.off()
+    legend("topright",legend=c("AB","Ab","aB","ab"),col=c(colors),lwd=5,cex=1.8)
 }

@@ -118,11 +118,11 @@ def print_fitness_matrix(seldmi,selanc,domdmi):
         h1=0
     fitness_matrix = np.zeros((3,3))
     fitness_matrix[[0,2],[0,2]] = 1
-    fitness_matrix[[1,2],[0,1]] = 1-seldmi*h1
-    fitness_matrix[[0,1],[1,2]] = 1-(selanc/2)
+    fitness_matrix[[1,2],[0,1]] = 1-(selanc/2)
+    fitness_matrix[[0,1],[1,2]] = 1-seldmi*h1
     fitness_matrix[1,1] = 1-seldmi*h0
-    fitness_matrix[2,0] = 1-seldmi
-    fitness_matrix[0,2] = 1-selanc
+    fitness_matrix[2,0] = 1-selanc
+    fitness_matrix[0,2] = 1-seldmi
     print('\nFitness Matrix:\n')
     print(fitness_matrix)
 
