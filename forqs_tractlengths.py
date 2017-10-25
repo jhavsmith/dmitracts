@@ -94,7 +94,7 @@ def get_forqs_tracts(ratevec, chrlen, maxlen, npts, migscheme):
     bintable = pd.DataFrame(index=bins[:-1],columns=ratevec)
     for rate in ratevec:
         data = get_data(rate, migscheme)
-        chromdict = make_chroms(data['chunks'],chrlen)
+        chromdict = make_chroms(data['chunks'],chrlen,rate)
         tractdict = make_tracts(chromdict,chrlen)
         tractbins = make_tractbins(tractdict,chrlen,maxlen,npts)
         popahist = tractbins.get('popahist')
@@ -123,7 +123,7 @@ def get_data(rate, migscheme):
     data = {'chunks':chunks,'popnums':popnums}
     return(data)
 
-def make_chroms(chunks, chrlen):
+def make_chroms(chunks, chrlen, rate):
     indpos = chunks[:,2::2]
     pos =  np.int_([value for value in np.unique(indpos) if not math.isnan(value)])
     ids = chunks[:,1::2]
@@ -143,6 +143,10 @@ def make_chroms(chunks, chrlen):
     n = chrommatrix.shape[0]
     chroms[np.where(chroms<(n-1))] = 1
     chroms[np.where(chroms>(n-1))] = 2
+    haptable = pd.DataFrame(data = chroms,columns=pos,dtype='i')
+    tempdir = "/home/joelsmith/Projects/dmis/code/forqs_files/forqs_temp/"
+    hapfile = tempdir+"haptable_mig_"+str(rate)+".csv"
+    haptable.to_csv(hapfile,index=False)
     pos = np.append(pos,chrlen)
     chromdict = {"chroms":chroms,"pos":pos}
     return(chromdict)
