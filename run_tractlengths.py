@@ -3,16 +3,16 @@
 %matplotlib
 
 #-----simulation parameters-------
-popsize = 2000
+popsize = 1000
 chrlen = 1000000
 rate = .01
 tstart = 50
 dmipos = (.3,.7)
-seldmi = .1
+seldmi = 0
 selanc = 0
 domdmi = 2
 #---------------------------------
-ratevec = [.001,.05,.1]
+ratevec = [.001,.03,.05,.1]
 markers = 1000
 npts = 20
 maxlen = 1
@@ -20,12 +20,13 @@ pop = 1
 Ls = [1]
 migscheme = 'hybrid'
 
-
-
 exec(open("/home/joelsmith/Projects/dmis/code/dmitracts/forqs_tractlengths.py").read())
 exec(open("/home/joelsmith/Projects/dmis/code/dmitracts/dfuse_tractlengths.py").read())
 
 print_fitness_matrix(seldmi,selanc,domdmi)
+
+#-------------Locus-specific tract length distributions-----------
+plot_locus_tractlengths(ratevec,tstart,Ls,pop,maxlen,npts,chrlen)
 
 #----------------DMI tract length distributions-------------------
 run_dfuse_dmis(rate, tstart, popsize, markers, dmipos, seldmi, selanc, domdmi)

@@ -1,3 +1,32 @@
+make.fitnessmatrix = function(seldmi,selanc,seldom) {
+    if (domdmi==0) {
+        h0=1
+        h1=1
+    }
+    if (domdmi==1) {
+        h0=1/4
+        h1=1/2
+    }
+    if (domdmi==2) {
+        h0=0
+        h1=1/2
+    }
+    if (domdmi==3) {
+        h0=0
+        h1=0
+    }
+    zygote.w = matrix(nrow=3,ncol=3)
+    zygote.w[1,1] = 1 - seldmi      #AABB
+    zygote.w[1,2] = 1 - seldmi*h1   #AABb
+    zygote.w[1,3] = 1                #AAbb
+    zygote.w[2,1] = 1 - seldmi*h1   #AaBB
+    zygote.w[2,2] = 1 - seldmi*h0   #AaBb
+    zygote.w[2,3] = 1 - (selanc/2)  #Aabb
+    zygote.w[3,1] = 1               #aaBB
+    zygote.w[3,2] = 1 - (selanc/2)  #aaBb
+    zygote.w[3,3] = 1 - selanc      #aabb
+    return(zygote.w)
+}
 
 make.populations = function(source.freqs,pops) {
     gamete.x.a = source.freqs
@@ -221,9 +250,9 @@ make.zygotes.WF = function(pop.list,pops,N) {
     return(pop.list)
 }
 
-simulate.trajecs = function(pops,N,m,msub,r,t,alpha,alpha1,beta,beta1,s,source.freqs) {
+simulate.trajecs = function(pops,N,m,msub,r,t,seldmi,selanc,domdmi,source.freqs) {
     pop.list = make.populations(source.freqs,pops)
-    zygote.w = make.fitnessmatrix(alpha,alpha1,beta,beta1,s)
+    zygote.w = make.fitnessmatrix(seldmi,selanc,seldom)
     gamete.trajecs = matrix(nrow=(t+1),ncol=pops*8)
     gamete.trajecs[1,1:4] = pop.list[[3]]
     gamete.trajecs[1,5:8] = pop.list[[4]]
@@ -249,9 +278,9 @@ simulate.trajecs = function(pops,N,m,msub,r,t,alpha,alpha1,beta,beta1,s,source.f
     return(trajec.list)
 }
 
-simulate.trajecs.WF = function(pops,N,m,msub,r,t,alpha,alpha1,beta,beta1,s,source.freqs) {
+simulate.trajecs.WF = function(pops,N,m,msub,r,t,seldmi,selanc,domdmi,source.freqs) {
     pop.list = make.populations(source.freqs,pops)
-    zygote.w = make.fitnessmatrix(alpha,alpha1,beta,beta1,s)
+    zygote.w = make.fitnessmatrix(seldmi,selanc,domdmi)
     gamete.trajecs = matrix(nrow=(t+1),ncol=pops*8)
     gamete.trajecs[1,1:4] = pop.list[[3]]
     gamete.trajecs[1,5:8] = pop.list[[4]]
@@ -277,7 +306,7 @@ simulate.trajecs.WF = function(pops,N,m,msub,r,t,alpha,alpha1,beta,beta1,s,sourc
     return(trajec.list)
 }
 
-WF.trajec.reps = function(pops,N,m,msub,r,t,alpha,alpha1,beta,beta1,s,source.freqs,reps) {
+WF.trajec.reps = function(pops,N,m,msub,r,t,seldmi,selanc,domdmi,source.freqs,reps) {
     AB.matrix.a = matrix(nrow=t+1,ncol=reps)
     Ab.matrix.a = matrix(nrow=t+1,ncol=reps)
     aB.matrix.a = matrix(nrow=t+1,ncol=reps)
@@ -293,7 +322,7 @@ WF.trajec.reps = function(pops,N,m,msub,r,t,alpha,alpha1,beta,beta1,s,source.fre
     if (reps>1) {
         pb = txtProgressBar(1,reps,1,style=3)
         for (b in 1:reps) {
-            trajec.list.WF = simulate.trajecs.WF(pops,N,m,msub,r,t,alpha,alpha1,beta,beta1,s,source.freqs)
+            trajec.list.WF = simulate.trajecs.WF(pops,N,m,msub,r,t,seldmi,selanc,domdmi,source.freqs)
             AB.matrix.a[,b] = trajec.list.WF[[1]]
             Ab.matrix.a[,b] = trajec.list.WF[[2]]
             aB.matrix.a[,b] = trajec.list.WF[[3]]
@@ -312,7 +341,7 @@ WF.trajec.reps = function(pops,N,m,msub,r,t,alpha,alpha1,beta,beta1,s,source.fre
     }
     if (reps==1) {
         for (b in 1:reps) {
-            trajec.list.WF = simulate.trajecs.WF(pops,N,m,msub,r,t,alpha,alpha1,beta,beta1,s,source.freqs)
+            trajec.list.WF = simulate.trajecs.WF(pops,N,m,msub,r,t,seldmi,selanc,domdmi,source.freqs)
             gamete.trajecs.WF = trajec.list.WF[[1]]
             allele.trajecs.WF = trajec.list.WF[[2]]
             AB.matrix.a[,b] = gamete.trajecs.WF[,1]
@@ -339,9 +368,9 @@ WF.trajec.reps = function(pops,N,m,msub,r,t,alpha,alpha1,beta,beta1,s,source.fre
     return(WF.rep.list)
 }
 
-find.equilibrium.freqs = function(pops,N,m,msub,r,alpha,alpha1,beta,beta1,s,source.freqs) {
+find.equilibrium.freqs = function(pops,N,m,msub,r,seldmi,selanc,domdmi,source.freqs) {
     pop.list = make.populations(source.freqs,pops)
-    zygote.w = make.fitnessmatrix(alpha,alpha1,beta,beta1,s)
+    zygote.w = make.fitnessmatrix(seldmi,selanc,domdmi)
     gamete.trajecs = matrix(nrow=(1000+1),ncol=pops*8)
     gamete.trajecs[1,1:4] = pop.list[[3]]
     gamete.trajecs[1,5:8] = pop.list[[4]]

@@ -1,14 +1,11 @@
 
-
-
-
 #-----simulation parameters-------
-popsize = 2000
+popsize = 100
 chrlen = 1000000
-rate = .01
-tstart = 50
+rate = .1
+tstart = 20
 dmipos = c(.3,.7)
-seldmi = .2
+seldmi = 0
 selanc = 0
 domdmi = 0
 #---------------------------------

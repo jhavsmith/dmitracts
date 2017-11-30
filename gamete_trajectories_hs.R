@@ -35,17 +35,21 @@ make.fitnessmatrix = function(seldmi,selanc,seldom) {
         h1=0
     }
     zygote.w = matrix(nrow=3,ncol=3)
-    zygote.w[1,1] = 1               #AABB
+    zygote.w[1,1] = 1 - seldmi      #AABB
     zygote.w[1,2] = 1 - seldmi*h1   #AABb
-    zygote.w[1,3] = 1 - seldmi      #AAbb
-    zygote.w[2,1] = 1 - (selanc/2)  #AaBB
+    zygote.w[1,3] = 1                #AAbb
+    zygote.w[2,1] = 1 - seldmi*h1   #AaBB
     zygote.w[2,2] = 1 - seldmi*h0   #AaBb
-    zygote.w[2,3] = 1 - seldmi*h1   #Aabb
-    zygote.w[3,1] = 1 - selanc      #aaBB
+    zygote.w[2,3] = 1 - (selanc/2)  #Aabb
+    zygote.w[3,1] = 1               #aaBB
     zygote.w[3,2] = 1 - (selanc/2)  #aaBb
-    zygote.w[3,3] = 1               #aabb
+    zygote.w[3,3] = 1 - selanc      #aabb
     return(zygote.w)
 }
+
+
+
+
 
 recombination.and.selection.hs = function(pop.list,zygote.w,r) {
     #getting the zygote fitnesses
