@@ -6,6 +6,8 @@ import numpy as np
 import math
 import pdb
 
+exec(open("/home/joelsmith/Projects/software/tracts/tracts.py").read())
+
 #------------------Neutral Simulations----------------------
 
 def run_dfuse(ratevec, tstart, popsize, markers):
@@ -196,6 +198,15 @@ def make_tractbins_dmis(tractdict,chrlen,maxlen,npts):
     tractbins = {'popahist':popahist,'popbhist':popbhist}
     return(tractbins)
 
+def plot_locus_tractlengths(ratevec,tstart,Ls,pop,maxlen,npts,chrlen):
+    """Plots the predicted locus-specific tract lengths"""
+    mig = continuous_mig_hybridzone(rate,tstart)
+    model = demographic_model(mig)
+    tractsOut = model.expectperbin(Ls,pop,bins)
+    tractDist = np.array(tractsOut)
+    relTractDist = tractDist / np.sum(tractDist)
+    plt.plot(bins[:npts],np.log(relTractDist[:npts:]),label='_nolegend_')
+
 def plot_figure_dfuse_dmis(ratevec,tstart,Ls,pop,maxlen,npts,chrlen):
     """Plots the predicted tract length distributions against the
     simulated tract length distributions from dfuse."""
@@ -205,16 +216,7 @@ def plot_figure_dfuse_dmis(ratevec,tstart,Ls,pop,maxlen,npts,chrlen):
     bins = np.append(bintablea.index.values,1)
     rows = bintablea.shape[0]
     xAxis = np.array(list(range(1,rows+1)))[:rows-1] / np.array(rows)
-    # tracts
-    mig = continuous_mig_hybridzone(rate,tstart)
-    model = demographic_model(mig)
-    tractsOut = model.expectperbin(Ls,pop,bins)
-    tractDist = np.array(tractsOut)
-    relTractDist = tractDist / np.sum(tractDist)
-    #
     f, (ax1, ax2) = plt.subplots(nrows=1, ncols=2,sharey=True)
-    ax1.plot(bins[:npts],np.log(relTractDist[:npts:]),label='_nolegend_')
-    ax2.plot(bins[:npts],np.log(relTractDist[:npts:]),label='_nolegend_')
     obsa = np.asarray(np.where(np.logical_not(bintablea['col1']==0)))[0][:-1]
     obsb = np.asarray(np.where(np.logical_not(bintablea['col2']==0)))[0][:-1]
     obsvaluesa = bintablea.iloc[obsa]['col1']
@@ -230,10 +232,6 @@ def plot_figure_dfuse_dmis(ratevec,tstart,Ls,pop,maxlen,npts,chrlen):
     ax2.scatter(x=bintableb.index[obsa],y=np.log(obsvaluesa))
     ax2.scatter(x=bintableb.index[obsb],y=np.log(obsvaluesb))
     ax2.set_xlabel('Tract Length (Morgans)')
-
-
-
-
 
 def make_tracts_dmis(chromdict,chrlen,dmipos):
     chroms = chromdict['chroms']

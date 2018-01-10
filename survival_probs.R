@@ -336,7 +336,7 @@ make.transition.matrix = function(freq.list,r,v,w,t.vec) {
 }
 
 
-junction.survival.func = function(trajec.list,r,v,w,gens.prob) {
+junction.survival.func = function(trajec.list,v,w,gens.prob) {
     gamete.trajecs = trajec.list[[1]]
     allele.trajecs = trajec.list[[2]]
     zygote.w       = trajec.list[[3]]
@@ -351,6 +351,7 @@ junction.survival.func = function(trajec.list,r,v,w,gens.prob) {
     initial.junction.prob = c(rep(0,4),rep(2*A.allele[starting.gen]*b.allele[starting.gen],4),rep(2*a.allele[starting.gen]*B.allele[starting.gen],4),rep(0,5))
     initial.junction.prob = c(rep(0,4),rep(c(gamete.trajecs[starting.gen,]),2),rep(0,5))*initial.junction.prob
     initial.junction.prob[17] = 1-sum(initial.junction.prob[1:16])
+    r = v + w
     for (j in 1:gens.prob) {
         i = c(starting.gen:nrow(gamete.trajecs))[j]
         x.1 = gamete.trajecs[i,1]
@@ -478,12 +479,12 @@ survival.probs.WF = function(trajec.list,r,v,w,gens.prob) {
         }
     }
     if (is.null(ncol(A.trajecs))) {
-        AB.trajecs = trajec.list$AB.matrix.a
-        Ab.trajecs = trajec.list$Ab.matrix.a
-        aB.trajecs = trajec.list$aB.matrix.a
-        ab.trajecs = trajec.list$ab.matrix.a
-        A.trajecs  = trajec.list$A.matrix.a
-        b.trajecs  = trajec.list$b.matrix.a
+        AB.trajecs = trajec.list$AB.matrix
+        Ab.trajecs = trajec.list$Ab.matrix
+        aB.trajecs = trajec.list$aB.matrix
+        ab.trajecs = trajec.list$ab.matrix
+        A.trajecs  = trajec.list$A.matrix
+        b.trajecs  = trajec.list$b.matrix
         zygote.w   = trajec.list$zygote.w
         gamete.trajecs = cbind(AB.trajecs,Ab.trajecs,aB.trajecs,ab.trajecs)
         allele.trajecs = cbind(A.trajecs,b.trajecs)
@@ -491,6 +492,24 @@ survival.probs.WF = function(trajec.list,r,v,w,gens.prob) {
         survival.prob.vec.WF = junction.survival.func(traj.list,r,v,w,gens.prob)
     }
     return(survival.prob.vec.WF)
+}
+
+survival.probs = function(trajec.list,v,w,tstart) {
+    AB.trajecs = trajec.list$AB.matrix
+    Ab.trajecs = trajec.list$Ab.matrix
+    aB.trajecs = trajec.list$aB.matrix
+    ab.trajecs = trajec.list$ab.matrix
+    A.trajecs  = trajec.list$A.matrix
+    b.trajecs  = trajec.list$b.matrix
+    zygote.w   = trajec.list$zygote.w
+    gamete.trajecs = cbind(AB.trajecs,Ab.trajecs,aB.trajecs,ab.trajecs)
+    allele.trajecs = cbind(A.trajecs,b.trajecs)
+    traj.list = list("gamete.trajecs"=gamete.trajecs,"allele.trajecs"=allele.trajecs,"zygote.w"=zygote.w)
+    tau.vec = c(1:tstart)
+    for (tau in c(1:(tstart))) {
+        tau.vec[tau] = junction.survival.func(traj.list,v,w,tau)
+    }
+    return(tau.vec)
 }
 
 plot.survival.prob.versus.gens = function(WF.det.list,WF.sto.list,dmipos,chrlen,recomb) {
