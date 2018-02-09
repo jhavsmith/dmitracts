@@ -1,13 +1,13 @@
-Run 2018-Jan-31 16:23:
-Input files: deme settings 'dfusedir/input/demefile', epistasis 'dfusedir/input/episfile', single-locus 'undefined', environment 'undefined'
-Output files: 'dfusedir/output/dmi.main'
-Number of replicates: 1
+Run 2018-Feb-08 16:52:
+Input files: deme settings 'input/demefile', epistasis 'input/episfile', single-locus 'undefined', environment 'undefined'
+Output files: 'output/dmi.main'
+Number of replicates: 10
 Number of generations: 5
 Writing output every 5 generations
 Mean fecundity: 5.0
-Number of homolog chromosomes: 1
+Number of homolog chromosomes: 10
 Migration rate: 0.010000
-Selection coefficient: 0.000000
+Selection coefficient: 0.100000
 Selection along DMI ridge: 0.000000
 Recessivity for DMIs: 2
 Selection stage: fertility
@@ -17,8 +17,8 @@ Markers per chromosome: 100
 Fitness model: mult
 Staining: no
 Number of demes: 1
-Adult capacity: 10 
-Progeny capacity: 10 
+Adult capacity: 100 
+Progeny capacity: 100 
 Migration matrix:
    0.005   0.990   0.005
 Marker positions:
