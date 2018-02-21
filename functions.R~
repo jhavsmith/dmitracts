@@ -1,28 +1,60 @@
 
 #-----------------simulation parameters------------------
 
-popsize = 100   
+popsize = 500   
 chrlen = 1000  
 dmipos = c(.5,.5)  
 windowsize = .2                    
 chrnum = 2
 reps = 10
-bins = 20
+bins = 10
 migrate = .1  
 nmarkers = 1000   
-tstart = 50             
-seldmi = .5  
+tstart = 100             
+seldmi = 0 
 selanc = 0   
 domdmi = 0  
+model = "dmi"
+type = "boxplots"
 demefile = "input/demefile"        
 episfile = "input/episfile"        
 outfile = "output/dmi"               
 outfile.a = "output/neu"                      
 outfile.b = "output/sel"     
+
+# model (a)
+seldmi = .9
+selanc = .5  
+domdmi = 0 
+
+# model (b)
+seldmi = .9  
+selanc = 0   
+domdmi = 0 
+
+# model (c)
+seldmi = .9  
+selanc = 0   
+domdmi = 3 
+
+# model (d)
+seldmi = .9  
+selanc = .9   
+domdmi = 0
+
+# model (e)
+seldmi = .9  
+selanc = .9  
+domdmi = 2 
+
+# model (f)
+seldmi = .9  
+selanc = .9  
+domdmi = 3
                           
 #---------------------run simulations--------------------
  
-run_dfuse(popsize,chrlen,migrate,nmarkers,tstart,dmipos,seldmi,selanc,domdmi,reps,demefile,episfile,outfile,chrnum)    
+run_dfuse(popsize,chrlen,migrate,nmarkers,tstart,dmipos,seldmi,selanc,domdmi,reps,demefile,episfile,outfile,chrnum,model)    
                  
 #--------------------plot haplotypes---------------------           
 
@@ -36,19 +68,56 @@ compute_summary_stats(outfile, dmipos, chrnum, windowsize)
 
 plot_summary_stats(outfile, dmipos, windowsize, reps)
                   
-#----------------run simulation comparison---------------                
+#----------------run simulation comparison---------------                       
                       
-run_comparisons(popsize,chrlen,migrate,nmarkers,tstart,dmipos,seldmi,selanc,domdmi,reps,demefile,episfile,outfile.a,outfile.b,chrnum)                     
+run_comparisons(popsize,chrlen,migrate,nmarkers,tstart,dmipos,seldmi,selanc,domdmi,reps,demefile,episfile,outfile.a,outfile.b,chrnum,model)                     
                                                  
 #-----plot neutral versus selection distributions--------             
-             
-plot_distributions(outfile.a,outfile.b,reps,bins)   
+
+plot_distributions(outfile.a,outfile.b,reps,bins,type)   
+
+#---------------find time to equilibrium-----------------
+
+diff.table = find_equilibrium(popsize,chrlen,migrate,nmarkers,dmipos,seldmi,selanc,domdmi,demefile,episfile,outfile,chrnum,model)
 
 #--------------------------------------------------------    
 
+#ancestry plot
+pdf("equil_plot_c.pdf",height=7,width=10)
+par(mfrow=c(1,2))
+matplot(diff.table[,-c(3,4)],type='l',lty=1,lwd=1.5,col=c("dodgerblue","darkorange"),main="Ancestry Proportion",xlab="Simulation Generations",ylab="Difference")
+#junction plot
+matplot(diff.table[,-c(1,2)],type='l',lty=1,lwd=1.5,col=c("dodgerblue","darkorange"),main="Junction Counts",xlab="Simulation Generations",ylab="Difference")
+legend("bottomright",c("Chromosome 1","Chromosome 2"),col=c("dodgerblue","darkorange"),lty=1,lwd=2)
+dev.off()
 
-plot_distributions = function(outfile.a,outfile.b,reps,bins) {
-    recover()
+
+find_equilibrium = function(popsize,chrlen,migrate,nmarkers,dmipos,seldmi,selanc,domdmi,demefile,episfile,outfile,chrnum,model) {
+    ancestry.a = 0
+    ancestry.b = 0
+    junctions.a = 0
+    junctions.b = 0
+    anc.diff.table = c(0,0,0,0)
+    for (tstart in seq(1,100,1)) {
+        print(tstart)
+        run_dfuse(popsize,chrlen,migrate,nmarkers,tstart,dmipos,seldmi,selanc,domdmi,reps=1,demefile,episfile,outfile,chrnum,model)
+        compute_summary_stats(outfile, dmipos, chrnum, windowsize)   
+        load(paste(outfile,".stats.RDATA",sep=''))
+        ancestry.a.prime = summarylist$ancestry$mean.a
+        ancestry.b.prime = summarylist$ancestry$mean.b
+        junctions.a.prime = summarylist$junctions$mean.a
+        junctions.b.prime = summarylist$junctions$mean.b
+        anc.a.diff = abs(ancestry.a.prime-ancestry.a)
+        anc.b.diff = abs(ancestry.b.prime-ancestry.b)
+        jun.a.diff = abs(junctions.a.prime-junctions.a)
+        jun.b.diff = abs(junctions.b.prime-junctions.b)
+        anc.diff.table = rbind(anc.diff.table,c(anc.a.diff,anc.b.diff,jun.a.diff,jun.b.diff))
+    }
+    diff.table =  anc.diff.table[-1,]
+    return(diff.table)
+}
+
+plot_distributions = function(outfile.a,outfile.b,reps,bins,type) {
     load(paste(outfile.a,".stats.RDATA",sep=''))     
     ancestry.neu = summarylist$ancestry     
     junction.neu = summarylist$junctions     
@@ -75,81 +144,113 @@ plot_distributions = function(outfile.a,outfile.b,reps,bins) {
     anc.df = data.frame(Ancestry=as.numeric(anc[,1]),Locus=anc[,3],Simulation=anc[,2])
     jun.df = data.frame(Junctions=as.numeric(jun[,1]),Locus=jun[,3],Simulation=jun[,2])    
     # now the tracts
-    tracts.df = make_tracts_df(tracts.sel,tracts.neu,bins)
+    tracts.df = make_tracts_df(tracts.sel,tracts.neu,reps,bins)
+    tracts.df = tracts.df[-which(tracts.df$Length==1),]    
     # plotting
     library('RColorBrewer')
     library('ggplot2')
-    library('gridExtra')    
+    library('gridExtra') 
+    library('grid')   
     tracts.a.a = tracts.df[intersect(which(tracts.df$Locus=="Locus 1"),which(tracts.df$Ancestry=="A")),]
     tracts.a.b = tracts.df[intersect(which(tracts.df$Locus=="Locus 1"),which(tracts.df$Ancestry=="B")),]
     tracts.b.a = tracts.df[intersect(which(tracts.df$Locus=="Locus 2"),which(tracts.df$Ancestry=="A")),]
-    tracts.b.b = tracts.df[intersect(which(tracts.df$Locus=="Locus 2"),which(tracts.df$Ancestry=="B")),]
-    a = ggplot(aes(y = Counts, x = as.character(Length), fill = Simulation), data = tracts.a.a) + geom_boxplot()
-    b = ggplot(aes(y = Counts, x = as.character(Length), fill = Simulation), data = tracts.b.a) + geom_boxplot()
-    c = ggplot(aes(y = Counts, x = as.character(Length), fill = Simulation), data = tracts.a.b) + geom_boxplot()
-    d = ggplot(aes(y = Counts, x = as.character(Length), fill = Simulation), data = tracts.b.b) + geom_boxplot()
-    #extract legend
-
-
-mylegend<-g_legend(p1)
-
-p3 <- grid.arrange(arrangeGrob(p1 + theme(legend.position="none"),
-                         p2 + theme(legend.position="none"),
-                         nrow=1),
-             mylegend, nrow=2,heights=c(10, 1))
-    
-    grid.arrange(a,b,c,d,nrow=2)             
-  #  p = ggplot(aes(y = Ancestry, x = Locus, fill = Simulation), data = anc.df) + geom_boxplot() + theme(legend.position="top")
-  #  q = ggplot(aes(y = Junctions, x = Locus, fill = Simulation), data = jun.df) + geom_boxplot() + guides(fill=FALSE)
-  #  grid.arrange(p,q,nrow=2)         
+    tracts.b.b = tracts.df[intersect(which(tracts.df$Locus=="Locus 2"),which(tracts.df$Ancestry=="B")),]  
+    if (type=="boxplots") {
+        p1 = ggplot(aes(y = Ancestry, x = Locus, fill = Simulation), data = anc.df) + geom_boxplot() + theme(legend.position="none") + labs(x ="")
+        p2 = ggplot(aes(y = Junctions, x = Locus, fill = Simulation), data = jun.df) + geom_boxplot() + guides(fill=FALSE) + theme(legend.position="right") + labs(x ="")
+        p3 = ggplot(aes(y = Frequency, x = as.character(Length), fill = Simulation), data = tracts.a.a) + geom_boxplot() + theme(legend.position="none") + labs(x ="",title="Locus 1")
+        p4 = ggplot(aes(y = Frequency, x = as.character(Length), fill = Simulation), data = tracts.b.b) + geom_boxplot() + theme(legend.position="none") + labs(x ="",y="",title="Locus 2") 
+        p5 = ggplot(aes(y = Frequency, x = as.character(Length), fill = Simulation), data = tracts.a.b) + geom_boxplot() + theme(legend.position="none") + labs(x ="Tract Length")
+        p6 = ggplot(aes(y = Frequency, x = as.character(Length), fill = Simulation), data = tracts.b.a) + geom_boxplot() + theme(legend.position="none") + labs(x ="Tract Length",y="")   
+        grid_arrange_shared_legend(p1,p2,p3,p4,p5,p6,nrow=3,position="bottom")         
+    } 
+    if (type=="lineplots") {
+        tract.means.a.a = compute_tract_means(tracts.a.a)
+        tract.means.a.b = compute_tract_means(tracts.a.b)
+        tract.means.b.a = compute_tract_means(tracts.b.a)
+        tract.means.b.b = compute_tract_means(tracts.b.b)       
+        p1 = ggplot(aes(y = Ancestry, x = Locus, fill = Simulation), data = anc.df) + geom_boxplot() + theme(legend.position="none") + labs(x ="")
+        p2 = ggplot(aes(y = Junctions, x = Locus, fill = Simulation), data = jun.df) + geom_boxplot() + guides(fill=FALSE) + theme(legend.position="right") + labs(x ="")
+        p3 = ggplot(data=tract.means.a.a, aes(x=as.character(Length), y=Mean, ymin=Lower, ymax=Upper, fill=Simulation, group=Simulation)) + geom_line() + geom_ribbon(alpha=0.5) + theme(legend.position="none") + labs(x ="",title="Locus 1")
+        p4 = ggplot(data=tract.means.a.b, aes(x=as.character(Length), y=Mean, ymin=Lower, ymax=Upper, fill=Simulation, group=Simulation)) + geom_line() + geom_ribbon(alpha=0.5) + theme(legend.position="none") + labs(x ="",y="",title="Locus 2")    
+        p5 = ggplot(data=tract.means.b.a, aes(x=as.character(Length), y=Mean, ymin=Lower, ymax=Upper, fill=Simulation, group=Simulation)) + geom_line() + geom_ribbon(alpha=0.5) + theme(legend.position="none") + labs(x ="Tract Length")
+        p6 = ggplot(data=tract.means.b.b, aes(x=as.character(Length), y=Mean, ymin=Lower, ymax=Upper, fill=Simulation, group=Simulation)) + geom_line() + geom_ribbon(alpha=0.5) + theme(legend.position="none") + labs(x ="Tract Length",y="")
+        grid_arrange_shared_legend(p1,p2,p3,p4,p5,p6,nrow=3,position="bottom")         
+    }
 }
+
+compute_tract_means = function(tractsdata) {
+    L.vec = unique(tractsdata$Length)    
+    tract.matrix.sel = matrix(nrow=length(L.vec),ncol=6)
+    tract.matrix.neu = matrix(nrow=length(unique(L.vec)),ncol=6)
+    tracts.sel = tractsdata[which(tractsdata$Simulation=="Selection"),]
+    tracts.neu = tractsdata[which(tractsdata$Simulation=="Neutral"),]   
+    for (i in 1:length(L.vec)) {
+        tract.matrix.sel[i,1] = L.vec[i]
+        tract.matrix.neu[i,1] = L.vec[i]
+        tract.matrix.sel[i,2] = mean(tracts.sel$Frequency[which(tracts.sel$Length==L.vec[i])])
+        tract.matrix.neu[i,2] = mean(tracts.neu$Frequency[which(tracts.neu$Length==L.vec[i])])
+        tract.matrix.sel[i,c(3,4)] = quantile(tracts.sel$Frequency[which(tracts.sel$Length==L.vec[i])],probs=c(.05,.95))
+        tract.matrix.neu[i,c(3,4)] = quantile(tracts.neu$Frequency[which(tracts.neu$Length==L.vec[i])],probs=c(.05,.95))
+    }
+    tract.df.sel = data.frame(tract.matrix.sel)    
+    tract.df.neu = data.frame(tract.matrix.neu)   
+    tract.df.sel[,5] = tracts.sel[1,5] 
+    tract.df.neu[,5] = tracts.neu[1,5] 
+    tract.df.sel[,6] = tracts.sel[1,6] 
+    tract.df.neu[,6] = tracts.neu[1,6] 
+    tract.df = rbind(tract.df.sel,tract.df.neu)    
+    colnames(tract.df) = c("Length","Mean","Lower","Upper","Simulation","Locus")
+    return(tract.df)
+} 
  
-make_tracts_df = function(tracts.sel,tracts.neu,bins) {
-    tracts.df = data.frame(Replicate = integer(),Length = integer(),Counts = integer(), 
-                           Ancestry = character(),Simulation = character(),Locus = character())
+ 
+make_tracts_df = function(tracts.sel,tracts.neu,reps,bins) {
+    tracts.df = data.frame(Replicate = integer(),Length = integer(),Counts = integer(),Ancestry = character(),Simulation = character(),Locus = character())
     for (i in 1:reps) {
         sel.rep.a = cbind(tracts.sel$a.lens[i,],tracts.sel$a.anc[i,])        
         sel.rep.b = cbind(tracts.sel$b.lens[i,],tracts.sel$b.anc[i,])
         neu.rep.a = cbind(tracts.neu$a.lens[i,],tracts.neu$a.anc[i,])
         neu.rep.b = cbind(tracts.neu$b.lens[i,],tracts.neu$b.anc[i,])
-        sel.hist.a.a = hist(sel.rep.a[which(sel.rep.a[,2]==0),],plot=F,breaks=bins)
-        sel.hist.a.b = hist(sel.rep.a[which(sel.rep.a[,2]==1),],plot=F,breaks=bins)
-        sel.hist.b.a = hist(sel.rep.b[which(sel.rep.b[,2]==0),],plot=F,breaks=bins)
-        sel.hist.b.b = hist(sel.rep.b[which(sel.rep.b[,2]==1),],plot=F,breaks=bins)        
-        neu.hist.a.a = hist(neu.rep.a[which(neu.rep.a[,2]==0),],plot=F,breaks=bins)
-        neu.hist.a.b = hist(neu.rep.a[which(neu.rep.a[,2]==1),],plot=F,breaks=bins)
-        neu.hist.b.a = hist(neu.rep.b[which(neu.rep.b[,2]==0),],plot=F,breaks=bins)
-        neu.hist.b.b = hist(neu.rep.b[which(neu.rep.b[,2]==1),],plot=F,breaks=bins)   
+        breakpoints = seq(0,1,1/bins)
+        sel.hist.a.a = hist(sel.rep.a[which(sel.rep.a[,2]==0),1],plot=F,breaks=breakpoints)
+        sel.hist.a.b = hist(sel.rep.a[which(sel.rep.a[,2]==1),1],plot=F,breaks=breakpoints)
+        sel.hist.b.a = hist(sel.rep.b[which(sel.rep.b[,2]==0),1],plot=F,breaks=breakpoints)
+        sel.hist.b.b = hist(sel.rep.b[which(sel.rep.b[,2]==1),1],plot=F,breaks=breakpoints)        
+        neu.hist.a.a = hist(neu.rep.a[which(neu.rep.a[,2]==0),1],plot=F,breaks=breakpoints)
+        neu.hist.a.b = hist(neu.rep.a[which(neu.rep.a[,2]==1),1],plot=F,breaks=breakpoints)
+        neu.hist.b.a = hist(neu.rep.b[which(neu.rep.b[,2]==0),1],plot=F,breaks=breakpoints)
+        neu.hist.b.b = hist(neu.rep.b[which(neu.rep.b[,2]==1),1],plot=F,breaks=breakpoints)   
         sel.a.a = data.frame(Replicate = rep(i,length(sel.hist.a.a$counts)), Length = sel.hist.a.a$breaks[-1],
-                             Counts = sel.hist.a.a$counts, Ancestry = rep("A",length(sel.hist.a.a$counts)),
+                             Frequency = sel.hist.a.a$counts/sum(sel.hist.a.a$counts), Ancestry = rep("A",length(sel.hist.a.a$counts)),
                              Simulation = rep("Selection",length(sel.hist.a.a$counts)), 
                              Locus = rep("Locus 1",length(sel.hist.a.a$counts)))
         sel.a.b = data.frame(Replicate = rep(i,length(sel.hist.a.b$counts)), Length = sel.hist.a.b$breaks[-1],
-                             Counts = sel.hist.a.b$counts, Ancestry = rep("B",length(sel.hist.a.b$counts)),
+                             Frequency = sel.hist.a.b$counts/sum(sel.hist.a.b$counts), Ancestry = rep("B",length(sel.hist.a.b$counts)),
                              Simulation = rep("Selection",length(sel.hist.a.b$counts)), 
                              Locus = rep("Locus 1",length(sel.hist.a.b$counts)))                                                   
         sel.b.a = data.frame(Replicate = rep(i,length(sel.hist.b.a$counts)), Length = sel.hist.b.a$breaks[-1],
-                             Counts = sel.hist.b.a$counts, Ancestry = rep("A",length(sel.hist.b.a$counts)),
+                             Frequency = sel.hist.b.a$counts/sum(sel.hist.b.a$counts), Ancestry = rep("A",length(sel.hist.b.a$counts)),
                              Simulation = rep("Selection",length(sel.hist.b.a$counts)), 
-                             Locus = rep("Locus 2",length(sel.hist.a.a$counts)))
+                             Locus = rep("Locus 2",length(sel.hist.b.a$counts)))
         sel.b.b = data.frame(Replicate = rep(i,length(sel.hist.b.b$counts)), Length = sel.hist.b.b$breaks[-1],
-                             Counts = sel.hist.b.b$counts, Ancestry = rep("B",length(sel.hist.b.b$counts)),
+                             Frequency = sel.hist.b.b$counts/sum(sel.hist.b.b$counts), Ancestry = rep("B",length(sel.hist.b.b$counts)),
                              Simulation = rep("Selection",length(sel.hist.b.b$counts)), 
                              Locus = rep("Locus 2",length(sel.hist.b.b$counts)))   
         neu.a.a = data.frame(Replicate = rep(i,length(neu.hist.a.a$counts)), Length = neu.hist.a.a$breaks[-1],
-                             Counts = neu.hist.a.a$counts, Ancestry = rep("A",length(neu.hist.a.a$counts)),
+                             Frequency = neu.hist.a.a$counts/sum(neu.hist.a.a$counts), Ancestry = rep("A",length(neu.hist.a.a$counts)),
                              Simulation = rep("Neutral",length(neu.hist.a.a$counts)), 
                              Locus = rep("Locus 1",length(neu.hist.a.a$counts)))
         neu.a.b = data.frame(Replicate = rep(i,length(neu.hist.a.b$counts)), Length = neu.hist.a.b$breaks[-1],
-                             Counts = neu.hist.a.b$counts, Ancestry = rep("B",length(neu.hist.a.b$counts)),
+                             Frequency = neu.hist.a.b$counts/sum(neu.hist.a.b$counts), Ancestry = rep("B",length(neu.hist.a.b$counts)),
                              Simulation = rep("Neutral",length(neu.hist.a.b$counts)), 
                              Locus = rep("Locus 1",length(neu.hist.a.b$counts)))                                                   
         neu.b.a = data.frame(Replicate = rep(i,length(neu.hist.b.a$counts)), Length = neu.hist.b.a$breaks[-1],
-                             Counts = neu.hist.b.a$counts, Ancestry = rep("A",length(neu.hist.b.a$counts)),
+                             Frequency = neu.hist.b.a$counts/sum(neu.hist.b.a$counts), Ancestry = rep("A",length(neu.hist.b.a$counts)),
                              Simulation = rep("Neutral",length(neu.hist.b.a$counts)), 
-                             Locus = rep("Locus 2",length(neu.hist.a.a$counts)))
+                             Locus = rep("Locus 2",length(neu.hist.b.a$counts)))
         neu.b.b = data.frame(Replicate = rep(i,length(neu.hist.b.b$counts)), Length = neu.hist.b.b$breaks[-1],
-                             Counts = neu.hist.b.b$counts, Ancestry = rep("B",length(neu.hist.b.b$counts)),
+                             Frequency = neu.hist.b.b$counts/sum(neu.hist.b.b$counts), Ancestry = rep("B",length(neu.hist.b.b$counts)),
                              Simulation = rep("Neutral",length(neu.hist.b.b$counts)), 
                              Locus = rep("Locus 2",length(neu.hist.b.b$counts)))
         new.rep = rbind(sel.a.a,sel.a.b,sel.b.a,sel.b.b,neu.a.a,neu.a.b,neu.b.a,neu.b.b)
@@ -157,22 +258,34 @@ make_tracts_df = function(tracts.sel,tracts.neu,bins) {
     }
     return(tracts.df)
 } 
-                             
-run_dfuse = function(popsize, chrlen, migrate, nmarkers, tstart, dmipos, seldmi, selanc, domdmi, reps, demefile, episfile, outfile, chrnum) {
+                                          
+run_dfuse = function(popsize, chrlen, migrate, nmarkers, tstart, dmipos, seldmi, selanc, domdmi, reps, demefile, episfile, outfile, chrnum, model) {
     # Write the epistasis and deme files for dfuse    
-    # DMIs on same or different chromosomes
+    # loci on same or different chromosomes
     if (chrnum==1) { 
-        episinfo = matrix(nrow=8,ncol=3)   
-        episinfo[,1] = c(2,0,0,0,0,0,dmipos[1],0)   
-        episinfo[,2] = c(1,1,0,1,0,0,dmipos[2],1)   
+        episinfo = matrix(nrow=8,ncol=3)  
+        if (model=="dmi") { 
+            episinfo[,1] = c(2,0,0,0,0,0,dmipos[1],0)   
+            episinfo[,2] = c(1,1,0,1,0,0,dmipos[2],1)   
+        }
+        if (model=="pathway") {
+            episinfo[,1] = c(2,0,0,0,1,0,dmipos[1],0)        
+            episinfo[,2] = c(1,1,0,1,1,1,dmipos[2],1)            
+        }  
         episinfo[1,3] = 2    
-    }  
+    }                 
     if (chrnum==2) {                                       
-        episinfo = matrix(nrow=8,ncol=3)               
-        episinfo[,1] = c(2,0,0,0,0,0,dmipos[1],0)        
-        episinfo[,2] = c(1,1,0,1,0,1,dmipos[2],1)    
+        episinfo = matrix(nrow=8,ncol=3)
+        if (model=="dmi") {               
+            episinfo[,1] = c(2,0,0,0,0,0,dmipos[1],0)        
+            episinfo[,2] = c(1,1,0,1,0,1,dmipos[2],1)
+        }    
+        if (model=="pathway") {
+            episinfo[,1] = c(2,0,0,0,1,0,dmipos[1],0)        
+            episinfo[,2] = c(1,1,0,1,1,1,dmipos[2],1)        
+        }      
         episinfo[1,3] = 2                             
-    }                                                   
+    }                                                    
     demeinfo = c(1, popsize, popsize)                        
     write(demeinfo,file=demefile,ncolumns=1)                                       
     write.table(episinfo,file=episfile,row.names=F,col.names=F,quote=F,na="")           
@@ -206,7 +319,7 @@ run_dfuse = function(popsize, chrlen, migrate, nmarkers, tstart, dmipos, seldmi,
     }    
     save(haplotypes,file=paste(outfile,".haplo.RDATA",sep=''))
 }   
-               
+                
 compute_summary_stats = function(outfile,dmipos,chrnum,windowsize) {
     load(paste(outfile,".haplo.RDATA",sep=''))   
     reps = length(unique(haplotypes[,1]))       
@@ -342,7 +455,7 @@ junction_count = function(haprep,chrnum,windowsize,dmipos) {
         right = min(which(pos>=(dmipos[1]+(windowsize/2))))-1
         mean.a = mean(junctions.a[left:right])   
         mean.b = mean(junctions.b[left:right])               
-        junctions = list("junctions.a"=junctions.a,"junctions.b"=junctions.b,"mean.a"=mean.b,"mean.b"=mean.b)     
+        junctions = list("junctions.a"=junctions.a,"junctions.b"=junctions.b,"mean.a"=mean.a,"mean.b"=mean.b)     
     }
     return(junctions)
 } 
@@ -660,12 +773,12 @@ plot_summary_stats = function(outfile, dmipos, windowsize, reps) {
     }        
 }
  
-run_comparisons = function(popsize,chrlen,migrate,nmarkers,tstart,dmipos,seldmi,selanc,domdmi,reps,demefile,episfile,outfile.a,outfile.b,chrnum) {
+run_comparisons = function(popsize,chrlen,migrate,nmarkers,tstart,dmipos,seldmi,selanc,domdmi,reps,demefile,episfile,outfile.a,outfile.b,chrnum,model) {
     # The neutral simulation:     
-    run_dfuse(popsize,chrlen,migrate,nmarkers,tstart,dmipos,seldmi=0,selanc=0,domdmi=0,reps,demefile,episfile,outfile.a,chrnum)
+    run_dfuse(popsize,chrlen,migrate,nmarkers,tstart,dmipos,seldmi=0,selanc=0,domdmi=0,reps,demefile,episfile,outfile.a,chrnum,model)
     compute_summary_stats(outfile.a, dmipos, chrnum, windowsize)            
     # The selection simulation:         
-    run_dfuse(popsize,chrlen,migrate,nmarkers,tstart,dmipos,seldmi,selanc,domdmi,reps,demefile,episfile,outfile.b,chrnum)
+    run_dfuse(popsize,chrlen,migrate,nmarkers,tstart,dmipos,seldmi,selanc,domdmi,reps,demefile,episfile,outfile.b,chrnum,model)
     compute_summary_stats(outfile.b, dmipos, chrnum, windowsize)  
 }      
                    
@@ -684,6 +797,30 @@ no_list_func = function(data,type) {
 	return(new.matrix)   
 }    
   
+grid_arrange_shared_legend = function(..., ncol = 2, nrow = 3, position = c("bottom", "right")) {
+	plots <- list(...)
+	position <- match.arg(position)
+	g <- ggplotGrob(plots[[1]] + 
+	theme(legend.position = position))$grobs
+	legend <- g[[which(sapply(g, function(x) x$name) == "guide-box")]]
+	lheight <- sum(legend$height)
+	lwidth <- sum(legend$width)
+	gl <- lapply(plots, function(x) x +
+	theme(legend.position = "none"))
+	gl <- c(gl, ncol = ncol, nrow = nrow)
+	combined <- switch(position,
+	                   "bottom" = arrangeGrob(do.call(arrangeGrob, gl), 
+	                   legend,ncol = 1,
+					   heights = unit.c(unit(1, "npc") - lheight, lheight)),
+					   "right" = arrangeGrob(do.call(arrangeGrob, gl),
+				       legend, ncol = 1,
+					   widths = unit.c(unit(1, "npc") - lwidth, lwidth)))
+	grid.newpage()
+	grid.draw(combined)
+	# return gtable invisibly
+	invisible(combined)
+}    
+
 
 add.transparency = function(colors,alpha) {
     for (i in 1:length(colors)) {
