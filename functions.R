@@ -6,7 +6,7 @@ chrlen = 1000
 dmipos = c(.5,.5)  
 windowsize = .2                    
 chrnum = 2
-reps = 100
+reps = 1
 bins = 10
 migrate = .1  
 nmarkers = 1000   
@@ -288,7 +288,7 @@ run_dfuse = function(popsize, chrlen, migrate, nmarkers, tstart, dmipos, seldmi,
     write(demeinfo,file=demefile,ncolumns=1)                                       
     write.table(episinfo,file=episfile,row.names=F,col.names=F,quote=F,na="")           
     # Run dfuse                                                                   
-    system(paste("dfuse -d",demefile,"-g",tstart,"-m",migrate,                  
+    system(paste("dfuse/dfuse -d",demefile,"-g",tstart,"-m",migrate,                  
                  "-G",tstart,"-o",outfile,"-l",nmarkers,                           
                  "-e",episfile,"-c",seldmi,"-a",selanc,                         
                  "-R",domdmi,"-S 'fertility' -r",reps))                        
