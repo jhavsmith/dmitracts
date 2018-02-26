@@ -577,23 +577,23 @@ void setfitmat(const double sel, double dmi[][3], double path[][3], const double
   /* fitness matrix to specify fitness according to number of mismatching alleles
      in pairwise calculations for linear pathways */
      
-  double mypath[3][3] = {
+/*  double mypath[3][3] = {
     {1.0,         1.0 - sel,     1.0 - sel},
     {1.0 - sel,   1.0 - sel,     1.0 - sel},
     {1.0 - sel,   1.0 - sel,     1.0      },
-  };
+  }; 
 
-/*  double mypath[3][3] = {
+  double mypath[3][3] = {
     {1.0,         1.0 - sel/2,   1.0 - sel  },
     {1.0 - sel/2, 1.0,           1.0 - sel/2},
     {1.0 - sel,   1.0 - sel/2,   1.0        },
-  };
+  };*/
           
   double mypath[3][3] = {
     {1.0,         1.0,          1.0 - sel},
     {1.0,         1.0,          1.0},
     {1.0 - sel,   1.0,          1.0},
-  }; */
+  }; 
 
   for(i=0;i<3;i++){
     for(j=0;j<3;j++){

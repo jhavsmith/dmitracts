@@ -6,21 +6,23 @@ chrlen = 1000
 dmipos = c(.5,.5)  
 windowsize = .2                    
 chrnum = 2
-reps = 10
+reps = 100
 bins = 10
 migrate = .1  
 nmarkers = 1000   
 tstart = 100             
-seldmi = 0 
-selanc = 0   
-domdmi = 0  
-model = "dmi"
+model = "pathway"
 type = "boxplots"
 demefile = "input/demefile"        
 episfile = "input/episfile"        
 outfile = "output/dmi"               
 outfile.a = "output/neu"                      
 outfile.b = "output/sel"     
+
+# null model
+seldmi = 0 
+selanc = 0   
+domdmi = 0  
 
 # model (a)
 seldmi = .9
@@ -37,20 +39,11 @@ seldmi = .9
 selanc = 0   
 domdmi = 3 
 
-# model (d)
+# models (d - f)
 seldmi = .9  
-selanc = .9   
+selanc = 0  
 domdmi = 0
 
-# model (e)
-seldmi = .9  
-selanc = .9  
-domdmi = 2 
-
-# model (f)
-seldmi = .9  
-selanc = .9  
-domdmi = 3
                           
 #---------------------run simulations--------------------
  
@@ -71,25 +64,25 @@ plot_summary_stats(outfile, dmipos, windowsize, reps)
 #----------------run simulation comparison---------------                       
                       
 run_comparisons(popsize,chrlen,migrate,nmarkers,tstart,dmipos,seldmi,selanc,domdmi,reps,demefile,episfile,outfile.a,outfile.b,chrnum,model)                     
-                                                 
+                                                              
 #-----plot neutral versus selection distributions--------             
 
 plot_distributions(outfile.a,outfile.b,reps,bins,type)   
 
+#---------------compare distributions--------------------
+
+compare_distributions(outfile.a,outfile.b,reps) 
+        
 #---------------find time to equilibrium-----------------
 
-diff.table = find_equilibrium(popsize,chrlen,migrate,nmarkers,dmipos,seldmi,selanc,domdmi,demefile,episfile,outfile,chrnum,model)
+find_equilibrium(popsize,chrlen,migrate,nmarkers,dmipos,seldmi,selanc,domdmi,demefile,episfile,outfile,chrnum,model)
 
 #--------------------------------------------------------    
 
-#ancestry plot
-pdf("equil_plot_c.pdf",height=7,width=10)
-par(mfrow=c(1,2))
-matplot(diff.table[,-c(3,4)],type='l',lty=1,lwd=1.5,col=c("dodgerblue","darkorange"),main="Ancestry Proportion",xlab="Simulation Generations",ylab="Difference")
-#junction plot
-matplot(diff.table[,-c(1,2)],type='l',lty=1,lwd=1.5,col=c("dodgerblue","darkorange"),main="Junction Counts",xlab="Simulation Generations",ylab="Difference")
-legend("bottomright",c("Chromosome 1","Chromosome 2"),col=c("dodgerblue","darkorange"),lty=1,lwd=2)
-dev.off()
+compare_distributions = function(outfile.a,outfile.b,reps) {
+    recover()        
+    library(entropy)
+}
 
 
 find_equilibrium = function(popsize,chrlen,migrate,nmarkers,dmipos,seldmi,selanc,domdmi,demefile,episfile,outfile,chrnum,model) {
@@ -98,7 +91,7 @@ find_equilibrium = function(popsize,chrlen,migrate,nmarkers,dmipos,seldmi,selanc
     junctions.a = 0
     junctions.b = 0
     anc.diff.table = c(0,0,0,0)
-    for (tstart in seq(1,100,1)) {
+    for (tstart in seq(1,150,1)) {
         print(tstart)
         run_dfuse(popsize,chrlen,migrate,nmarkers,tstart,dmipos,seldmi,selanc,domdmi,reps=1,demefile,episfile,outfile,chrnum,model)
         compute_summary_stats(outfile, dmipos, chrnum, windowsize)   
@@ -114,7 +107,12 @@ find_equilibrium = function(popsize,chrlen,migrate,nmarkers,dmipos,seldmi,selanc
         anc.diff.table = rbind(anc.diff.table,c(anc.a.diff,anc.b.diff,jun.a.diff,jun.b.diff))
     }
     diff.table =  anc.diff.table[-1,]
-    return(diff.table)
+    par(mfrow=c(1,2))
+    #ancestry plot
+    matplot(diff.table[,-c(3,4)],type='l',lty=1,lwd=1.5,col=c("dodgerblue","darkorange"),main="Ancestry Proportion",xlab="Simulation Generations",ylab="Difference")
+    #junction plot
+    matplot(diff.table[,-c(1,2)],type='l',lty=1,lwd=1.5,col=c("dodgerblue","darkorange"),main="Junction Counts",xlab="Simulation Generations",ylab="Difference")
+    legend("bottomright",c("Chromosome 1","Chromosome 2"),col=c("dodgerblue","darkorange"),lty=1,lwd=2)
 }
 
 plot_distributions = function(outfile.a,outfile.b,reps,bins,type) {
