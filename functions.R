@@ -1,89 +1,8 @@
 
-#-----------------simulation parameters------------------
-
-popsize = 500   
-chrlen = 1000  
-dmipos = c(.5,.5)  
-windowsize = .2                    
-chrnum = 2
-reps = 1
-bins = 10
-migrate = .1  
-nmarkers = 1000   
-tstart = 100             
-model = "pathway"
-type = "boxplots"
-demefile = "input/demefile"        
-episfile = "input/episfile"        
-outfile = "output/dmi"               
-outfile.a = "output/neu"                      
-outfile.b = "output/sel"     
-
-# null model
-seldmi = 0 
-selanc = 0   
-domdmi = 0  
-
-# model (a)
-seldmi = .9
-selanc = .5  
-domdmi = 0 
-
-# model (b)
-seldmi = .9  
-selanc = 0   
-domdmi = 0 
-
-# model (c)
-seldmi = .9  
-selanc = 0   
-domdmi = 3 
-
-# models (d - f)
-seldmi = .9  
-selanc = 0  
-domdmi = 0
-
-                          
-#---------------------run simulations--------------------
- 
-run_dfuse(popsize,chrlen,migrate,nmarkers,tstart,dmipos,seldmi,selanc,domdmi,reps,demefile,episfile,outfile,chrnum,model)    
-                 
-#--------------------plot haplotypes---------------------           
-
-plot_haplotypes(outfile, dmipos, chrnum)      
-                                                            
-#----------------compute summary statistics--------------                                        
-                                         
-compute_summary_stats(outfile, dmipos, chrnum, windowsize)                                              
-    
-#-----------------plot summary statistics----------------   
-
-plot_summary_stats(outfile, dmipos, windowsize, reps)
-                  
-#----------------run simulation comparison---------------                       
-                      
-run_comparisons(popsize,chrlen,migrate,nmarkers,tstart,dmipos,seldmi,selanc,domdmi,reps,demefile,episfile,outfile.a,outfile.b,chrnum,model)                     
-                                                              
-#-----plot neutral versus selection distributions--------             
-
-plot_distributions(outfile.a,outfile.b,reps,bins,type)   
-
-#---------------compare distributions--------------------
-
-compare_distributions(outfile.a,outfile.b,reps) 
-        
-#---------------find time to equilibrium-----------------
-
-find_equilibrium(popsize,chrlen,migrate,nmarkers,dmipos,seldmi,selanc,domdmi,demefile,episfile,outfile,chrnum,model)
-
-#--------------------------------------------------------    
-
 compare_distributions = function(outfile.a,outfile.b,reps) {
     recover()        
     library(entropy)
 }
-
 
 find_equilibrium = function(popsize,chrlen,migrate,nmarkers,dmipos,seldmi,selanc,domdmi,demefile,episfile,outfile,chrnum,model) {
     ancestry.a = 0
@@ -201,7 +120,6 @@ compute_tract_means = function(tractsdata) {
     colnames(tract.df) = c("Length","Mean","Lower","Upper","Simulation","Locus")
     return(tract.df)
 } 
- 
  
 make_tracts_df = function(tracts.sel,tracts.neu,reps,bins) {
     tracts.df = data.frame(Replicate = integer(),Length = integer(),Counts = integer(),Ancestry = character(),Simulation = character(),Locus = character())
@@ -818,7 +736,6 @@ grid_arrange_shared_legend = function(..., ncol = 2, nrow = 3, position = c("bot
 	# return gtable invisibly
 	invisible(combined)
 }    
-
 
 add.transparency = function(colors,alpha) {
     for (i in 1:length(colors)) {
