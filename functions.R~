@@ -1,8 +1,146 @@
 
-compare_distributions = function(outfile.a,outfile.b,reps) {
-    recover()        
+compare_tracts = function(outfile.a,outfile.b,reps,title,ones) {
+    library(reshape)
     library(entropy)
+    load(paste(outfile.a,".stats.RDATA",sep=''))    
+    tracts.neu = summarylist$tracts       
+    load(paste(outfile.b,".stats.RDATA",sep=''))                 
+    tracts.sel = summarylist$tracts  
+    tracts.df = make_tracts_df(tracts.sel,tracts.neu,reps,bins)
+    tracts.a.a = tracts.df[intersect(which(tracts.df$Locus=="Locus 1"),which(tracts.df$Ancestry=="A")),]
+    tracts.a.b = tracts.df[intersect(which(tracts.df$Locus=="Locus 1"),which(tracts.df$Ancestry=="B")),]
+    tracts.b.a = tracts.df[intersect(which(tracts.df$Locus=="Locus 2"),which(tracts.df$Ancestry=="A")),]
+    tracts.b.b = tracts.df[intersect(which(tracts.df$Locus=="Locus 2"),which(tracts.df$Ancestry=="B")),]  
+    agg.tracts.a.a = aggregate(Frequency ~ Simulation + Length, data = tracts.a.a, FUN= "mean" )
+    agg.tracts.a.b = aggregate(Frequency ~ Simulation + Length, data = tracts.a.b, FUN= "mean" )
+    agg.tracts.b.a = aggregate(Frequency ~ Simulation + Length, data = tracts.b.a, FUN= "mean" )
+    agg.tracts.b.b = aggregate(Frequency ~ Simulation + Length, data = tracts.b.b, FUN= "mean" )
+    lengths = unique(agg.tracts.a.a$Length)    
+    if (ones=="no") {
+        agg.tracts.a.a = agg.tracts.a.a[-c(which(agg.tracts.a.a$Length==1)),]   
+        agg.tracts.a.b = agg.tracts.a.b[-c(which(agg.tracts.a.b$Length==1)),]   
+        agg.tracts.b.a = agg.tracts.b.a[-c(which(agg.tracts.b.a$Length==1)),]   
+        agg.tracts.b.b = agg.tracts.b.b[-c(which(agg.tracts.b.b$Length==1)),]                           
+        lengths=lengths[-which(lengths==1)]
+    }
+    if (ones=="yes") {
+        print("ones")
+    }
+    tracts.sel.a.a = agg.tracts.a.a[which(agg.tracts.a.a[,1]=="Selection"),3]
+    tracts.neu.a.a = agg.tracts.a.a[which(agg.tracts.a.a[,1]=="Neutral"),3]
+    tracts.sel.a.b = agg.tracts.a.b[which(agg.tracts.a.b[,1]=="Selection"),3]
+    tracts.neu.a.b = agg.tracts.a.b[which(agg.tracts.a.b[,1]=="Neutral"),3]
+    tracts.sel.b.a = agg.tracts.b.a[which(agg.tracts.b.a[,1]=="Selection"),3]
+    tracts.neu.b.a = agg.tracts.b.a[which(agg.tracts.b.a[,1]=="Neutral"),3]
+    tracts.sel.b.b = agg.tracts.b.b[which(agg.tracts.b.b[,1]=="Selection"),3]
+    tracts.neu.b.b = agg.tracts.b.b[which(agg.tracts.b.b[,1]=="Neutral"),3]    
+    maxy.a.a = max(tracts.sel.a.a,tracts.neu.a.a)
+    maxy.a.b = max(tracts.sel.a.b,tracts.neu.a.b)
+    maxy.b.a = max(tracts.sel.b.a,tracts.neu.b.a)
+    maxy.b.b = max(tracts.sel.b.b,tracts.neu.b.b)  
+    KL.a.a = round(KL.plugin(tracts.neu.a.a,tracts.sel.a.a),3)
+    KL.a.b = round(KL.plugin(tracts.neu.a.b,tracts.sel.a.b),3)
+    KL.b.a = round(KL.plugin(tracts.neu.b.a,tracts.sel.b.a),3)
+    KL.b.b = round(KL.plugin(tracts.neu.b.b,tracts.sel.b.b),3)     
+    par(mfrow=c(2,2))
+    par(mar=c(2, 5, 4, 0))
+    plot(lengths,tracts.sel.a.a,ylim=c(0,maxy.a.a),main="Locus 1",xaxt='n',lwd=2,pch=19,xlab="",cex.lab=1.5,ylab="Frequency (Ancestry A)",col="darkorange")
+    points(lengths,tracts.neu.a.a,lwd=2,pch=19,col="dodgerblue")
+    lines(lengths,tracts.sel.a.a,col="darkorange")
+    lines(lengths,tracts.neu.a.a,col="dodgerblue") 
+    mtext(paste("KL divergence:",KL.a.a),side=3,line=.5,at=.5)
+    par(mar=c(2, 2, 4, 3))
+    plot(lengths,tracts.sel.b.a,ylim=c(0,maxy.b.a),main="Locus 2",xaxt='n',lwd=2,pch=19,xlab="",cex.lab=1.5,ylab="",col="darkorange")
+    points(lengths,tracts.neu.b.a,lwd=2,pch=19,col="dodgerblue")
+    lines(lengths,tracts.sel.b.a,col="darkorange")
+    lines(lengths,tracts.neu.b.a,col="dodgerblue") 
+    mtext(paste("KL divergence:",KL.a.b),side=3,line=.5,at=.5)
+    legend("topright",c("Selection","Neutral"),col=c("darkorange","dodgerblue"),pch=19,cex=1.1,pt.cex = 2)     
+    mtext(title,side=3,line=2.3, at=0,cex=1.5)       
+    par(mar=c(5, 5, 1, 0))
+    plot(lengths,tracts.sel.a.b,ylim=c(0,maxy.a.b),lwd=2,pch=19,xlab="Tract Length (Morgans)",cex.lab=1.5,ylab="Frequency (Ancestry B)",col="darkorange")
+    points(lengths,tracts.neu.a.b,lwd=2,pch=19,col="dodgerblue")
+    lines(lengths,tracts.sel.a.b,col="darkorange")
+    lines(lengths,tracts.neu.a.b,col="dodgerblue") 
+    mtext(paste("KL divergence:",KL.b.a),side=3,line=.5,at=.5)    
+    par(mar=c(5, 2, 1, 3))
+    plot(lengths,tracts.sel.b.b,ylim=c(0,maxy.b.b),lwd=2,pch=19,xlab="Tract Length (Morgans)",cex.lab=1.5,ylab="",col="darkorange")
+    points(lengths,tracts.neu.b.b,lwd=2,pch=19,col="dodgerblue")
+    lines(lengths,tracts.sel.b.b,col="darkorange")
+    lines(lengths,tracts.neu.b.b,col="dodgerblue")
+    mtext(paste("KL divergence:",KL.b.b),side=3,line=.5,at=.5)            
 }
+
+compare_distributions = function(outfile.a,outfile.b,reps,title) {
+    library(entropy)
+    load(paste(outfile.a,".stats.RDATA",sep=''))     
+    anc.neu.a = summarylist$ancestry$mean.a     
+    anc.neu.b = summarylist$ancestry$mean.b   
+    jun.neu.a = summarylist$junctions$mean.a     
+    jun.neu.b = summarylist$junctions$mean.b 
+    load(paste(outfile.b,".stats.RDATA",sep=''))                 
+    anc.sel.a = summarylist$ancestry$mean.a     
+    anc.sel.b = summarylist$ancestry$mean.b   
+    jun.sel.a = summarylist$junctions$mean.a     
+    jun.sel.b = summarylist$junctions$mean.b
+    anc.neu.a = replace(anc.neu.a,which(anc.neu.a==0),min(anc.neu.a[which(anc.neu.a!=0)]))
+    anc.sel.a = replace(anc.sel.a,which(anc.sel.a==0),min(anc.sel.a[which(anc.sel.a!=0)]))
+    anc.neu.b = replace(anc.neu.b,which(anc.neu.b==0),min(anc.neu.b[which(anc.neu.b!=0)]))
+    anc.sel.b = replace(anc.sel.b,which(anc.sel.b==0),min(anc.sel.b[which(anc.sel.b!=0)]))
+    jun.neu.a = replace(jun.neu.a,which(jun.neu.a==0),min(jun.neu.a[which(jun.neu.a!=0)]))
+    jun.sel.a = replace(jun.sel.a,which(jun.sel.a==0),min(jun.sel.a[which(jun.sel.a!=0)]))
+    jun.neu.b = replace(jun.neu.b,which(jun.neu.b==0),min(jun.neu.b[which(jun.neu.b!=0)]))
+    jun.sel.b = replace(jun.sel.b,which(jun.sel.b==0),min(jun.sel.b[which(jun.sel.b!=0)]))      
+    KL.anc.a = KL.plugin(anc.neu.a,anc.sel.a)    
+    KL.anc.b = KL.plugin(anc.neu.b,anc.sel.b)
+    KL.jun.a = KL.plugin(jun.neu.a,jun.sel.a)
+    KL.jun.b = KL.plugin(jun.neu.b,jun.sel.b)
+    darkorange = rgb(255,140,0,alpha=150,maxColorValue=255)
+    dodgerblue = rgb(30,144,255,alpha=150,maxColorValue=255)
+    par(mfrow=c(2,2))      
+    #ancestry plots   
+    hist.neu = hist(anc.neu.a,plot=F,breaks=seq(0,1,.025))
+    hist.sel = hist(anc.sel.a,plot=F,breaks=seq(0,1,.025))
+    maxy = max(hist.neu$counts,hist.sel$counts)
+    par(mar=c(4, 5, 5, 2))     
+    hist(anc.sel.a,breaks=hist.neu$breaks,ylim=c(0,maxy),xlim=c(0,1),main='Locus 1',col=darkorange,ylab='',xlab='',yaxt='n',xaxt='n')
+    par(new=T)
+    hist(anc.neu.a,ylim=c(0,maxy),xlim=c(0,1),main='',cex.lab=1.5,breaks=hist.neu$breaks,col=dodgerblue,xlab='Ancestry Proportion')
+    mtext(paste("KL divergence:",round(KL.anc.a,3)),side=3,line=.5,at=.5)
+    par(new=F)
+    hist.neu = hist(anc.neu.b,plot=F,breaks=seq(0,1,.025))
+    hist.sel = hist(anc.sel.b,plot=F,breaks=seq(0,1,.025))
+    maxy = max(hist.neu$counts,hist.sel$counts)    
+    par(mar=c(4, 5, 5, 2)) 
+    hist(anc.sel.b,ylim=c(0,maxy),xlim=c(0,1),main='Locus 2',breaks=hist.neu$breaks,col=darkorange,ylab='',xlab='',yaxt='n',xaxt='n')
+    par(new=T)
+    hist(anc.neu.b,ylim=c(0,maxy),xlim=c(0,1),main='',cex.lab=1.5,breaks=hist.neu$breaks,col=dodgerblue,xlab='Ancestry Proportion')
+    mtext(paste("KL divergence:",round(KL.anc.b,3)),side=3,line=.5,at=.5)
+    legend("topright",c("Selection","Neutral"),col=c("darkorange","dodgerblue"),pch=19,cex=1.1,pt.cex = 2)    
+    mtext(title,side=3,line=3, at=-.25,cex=1.5)
+    par(new=F)    
+    #junctions plots
+    maxx = max(jun.sel.a,jun.neu.a)
+    hist.neu = hist(jun.neu.a,plot=F,breaks=seq(0,maxx+1,.1))
+    hist.sel = hist(jun.sel.a,plot=F,breaks=seq(0,maxx+1,.1))
+    maxy = max(hist.neu$counts,hist.sel$counts)
+    par(mar=c(5, 5, 2, 2))     
+    hist(jun.sel.a,xlim=c(0,maxx),ylim=c(0,maxy),breaks=hist.neu$breaks,main='',col=darkorange,ylab='',xlab='',yaxt='n',xaxt='n')
+    par(new=T)
+    hist(jun.neu.a,xlim=c(0,maxx),ylim=c(0,maxy),main='',cex.lab=1.5,breaks=hist.neu$breaks,col=dodgerblue,xlab='Junctions')
+    mtext(paste("KL divergence:",round(KL.jun.a,3)),side=3,line=.1,at=mean(hist.neu$breaks)-.5)
+    par(new=F) 
+    maxx = max(jun.sel.b,jun.neu.b)
+    hist.neu = hist(jun.neu.b,plot=F,breaks=seq(0,maxx+1,.1))
+    hist.sel = hist(jun.sel.b,plot=F,breaks=seq(0,maxx+1,.1))
+    maxy = max(hist.neu$counts,hist.sel$counts)         
+    par(mar=c(5, 5, 2, 2)) 
+    hist(jun.sel.b,xlim=c(0,maxx),ylim=c(0,maxy),breaks=hist.neu$breaks,main='',col=darkorange,ylab='',xlab='',yaxt='n',xaxt='n')
+    par(new=T)
+    hist(jun.neu.b,xlim=c(0,maxx),ylim=c(0,maxy),main='',cex.lab=1.5,breaks=hist.neu$breaks,col=dodgerblue,xlab='Junctions')
+    mtext(paste("KL divergence:",round(KL.jun.b,3)),side=3,line=.1,at=mean(hist.neu$breaks)-.5)    
+    par(new=F)           
+}  
 
 find_equilibrium = function(popsize,chrlen,migrate,nmarkers,dmipos,seldmi,selanc,domdmi,demefile,episfile,outfile,chrnum,model) {
     ancestry.a = 0
@@ -24,7 +162,7 @@ find_equilibrium = function(popsize,chrlen,migrate,nmarkers,dmipos,seldmi,selanc
         jun.a.diff = abs(junctions.a.prime-junctions.a)
         jun.b.diff = abs(junctions.b.prime-junctions.b)
         anc.diff.table = rbind(anc.diff.table,c(anc.a.diff,anc.b.diff,jun.a.diff,jun.b.diff))
-    }
+    }  
     diff.table =  anc.diff.table[-1,]
     par(mfrow=c(1,2))
     #ancestry plot
@@ -64,7 +202,6 @@ plot_distributions = function(outfile.a,outfile.b,reps,bins,type) {
     tracts.df = make_tracts_df(tracts.sel,tracts.neu,reps,bins)
     tracts.df = tracts.df[-which(tracts.df$Length==1),]    
     # plotting
-    library('RColorBrewer')
     library('ggplot2')
     library('gridExtra') 
     library('grid')   
@@ -199,8 +336,8 @@ run_dfuse = function(popsize, chrlen, migrate, nmarkers, tstart, dmipos, seldmi,
         if (model=="pathway") {
             episinfo[,1] = c(2,0,0,0,1,0,dmipos[1],0)        
             episinfo[,2] = c(1,1,0,1,1,1,dmipos[2],1)        
-        }      
-        episinfo[1,3] = 2                             
+        }                            
+        episinfo[1,3] = 2                               
     }                                                    
     demeinfo = c(1, popsize, popsize)                        
     write(demeinfo,file=demefile,ncolumns=1)                                       
@@ -211,13 +348,15 @@ run_dfuse = function(popsize, chrlen, migrate, nmarkers, tstart, dmipos, seldmi,
                  "-e",episfile,"-c",seldmi,"-a",selanc,                         
                  "-R",domdmi,"-S 'fertility' -r",reps))                        
     # Get the stuff we want from the dfuse output                                    
-    markers = scan(file=paste(outfile,".haplo",sep=''),nlines=1,what="character")  
-    positions = as.numeric(markers[-c(1:2)])
-    if (chrnum==1) { 
-        listtable = read.table(paste(outfile,".haplo",sep=''),sep=',')[,c(c(1:4),c(9:(nmarkers+8)))]  
+    markers = scan(file=paste(outfile,".haplo",sep=''),nlines=1,what="character")      
+    positions = as.numeric(markers[-c(1:2)])                                        
+    if (chrnum==1) {
+        system(paste("cat ",outfile,".haplo | cut -d',' -f1-4,",9,"-",(nmarkers+8),">",outfile,".cut.haplo",sep=''))                                                                
+        listtable = read.table(paste(outfile,".haplo",sep=''),sep=',')#[,c(c(1:4),c(9:(nmarkers+8)))]  
     }
     if (chrnum==2) {
-        listtable = read.table(paste(outfile,".haplo",sep=''),sep=',')[,c(c(1:4),c(9:((nmarkers*2)+8)))]      
+        system(paste("cat ",outfile,".haplo | cut -d',' -f1-4,",9,"-",(nmarkers*2)+8,">",outfile,".cut.haplo",sep=''))
+        listtable = read.table(paste(outfile,".cut.haplo",sep=''),sep=',')#[,c(c(1:4),c(9:((nmarkers*2)+8)))]      
     }
     # Convert to matrix
     haptable = no_list_func(listtable,"char")             
